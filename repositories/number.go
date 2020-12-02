@@ -7,10 +7,11 @@ import (
 )
 
 type NumberRepo struct {
-	Db *sql.DB
+	Db             *sql.DB
+	PairNumberObjs []PairNumberObj
 }
 
-type PairNumber struct {
+type PairNumberObj struct {
 	PairNumber string
 	PairType   string
 	PairPoint  int
@@ -22,10 +23,12 @@ func NewNumberRepo(db *sql.DB) *NumberRepo {
 	}
 }
 
-func (numberRepo *NumberRepo) GetTableNumbers() []PairNumber {
-	var pairNumber PairNumber
-	var pairNumbers []PairNumber
+func (numberRepo *NumberRepo) SetTableNumbers(uniqueNumber []string) {
+	var pairNumber PairNumberObj
+	var pairNumbers []PairNumberObj
+
 	rows, _ := numberRepo.Db.Query("SELECT pairnumber, pairtype, pairpoint FROM numbers")
+	defer numberRepo.Db.Close()
 	for rows.Next() {
 		err := rows.Scan(&pairNumber.PairNumber, &pairNumber.PairType, &pairNumber.PairPoint)
 		if err != nil {
@@ -36,8 +39,18 @@ func (numberRepo *NumberRepo) GetTableNumbers() []PairNumber {
 			panic(err)
 		}
 
-		number := PairNumber{PairNumber: pairNumber.PairNumber, PairType: pairNumber.PairType, PairPoint: pairNumber.PairPoint}
+		number := PairNumberObj{PairNumber: pairNumber.PairNumber, PairType: pairNumber.PairType, PairPoint: pairNumber.PairPoint}
 		pairNumbers = append(pairNumbers, number)
+
 	}
-	return pairNumbers
+
+	for _, unique := range uniqueNumber {
+		for _, pair := range pairNumbers {
+			if unique == pair.PairNumber {
+				numberRepo.PairNumberObjs = append(numberRepo.PairNumberObjs, pair)
+				break
+			}
+		}
+	}
+
 }
